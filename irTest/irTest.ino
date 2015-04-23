@@ -19,7 +19,7 @@ void setup()
 
 void loop()
 {  
-  //Serial.println(irRead(irSensorPin, irLedPin)); //display the results
+  Serial.println(digitalRead(irSensorPin)); //display the results
   digitalWrite(irLedPin, HIGH);
-  //delay(10); //wait for the string to be sent
+  delay(100); //wait for the string to be sent
 }
