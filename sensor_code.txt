@@ -1,0 +1,188 @@
+// Communcation library.
+#include <Wire.h>
+
+// Define the pins used for the back proximity sensor.
+#define echoPinBack       13
+#define trigPinBack       12
+
+// Define the pins used for the front proximity sensor.
+#define echoPinFront       8
+#define trigPinFront       7
+
+// Define the analog pins used for light sensors.
+#define BACK_LIGHT  A0
+#define FRONT_LIGHT A1
+
+// Define the analog pin for the touch sensor.
+#define TOUCH
+
+// Define the proximity cutoff in cm.
+#define TOO_CLOSE    5
+
+// Define the darkness cutoff.
+#define DARKNESS    15
+
+// Define the commands to send to motor board.
+#define FORWARD            5
+#define STOP              10
+#define BACKWARD          15
+#define DUMP              20
+#define NO_CHANGE         25
+
+// Variables for front proximity sensor.
+long proximityDurationFront;
+long proximityDistanceFront;
+
+// Variables for back proximity sensor.
+long proximityDurationBack;
+long proximityDistanceBack;
+
+// Variable that will be used to send data to the recieving board.
+byte message;
+
+// Variable to hold state information.
+boolean hasGrown;
+
+void setup() {
+  
+  // Setup the front proximity sensor pins.
+  pinMode(trigPinFront, OUTPUT);
+  pinMode(echoPinFront, INPUT);
+  
+  // Setup the back proximity sensor pins.
+  pinMode(trigPinBack, OUTPUT);
+  pinMode(echoPinBack, INPUT);
+  
+  // Setup the communcation. Join i2c bus (address optional for master)
+  Wire.begin();
+  
+  // Initialize the Runo to non-grown.
+  hasGrown = false;
+  
+  // Setup debugging if needed.
+  Serial.begin(9600);
+}
+
+void loop() {
+  
+  calculateProximitySensors();
+  
+  // Check for light issues 
+  if (analogRead(BACK_LIGHT) <= DARKNESS && analogRead(FRONT_LIGHT) <= DARKNESS) {
+    message = STOP;
+  } else if (analogRead(BACK_LIGHT) <= DARKNESS && analogRead(FRONT_LIGHT) > DARKNESS) {
+    message = FORWARD;
+  } else if (analogRead(BACK_LIGHT) > DARKNESS && analogRead(FRONT_LIGHT) <= DARKNESS) {
+    message = BACKWARD;
+  } else {
+    message = NO_CHANGE;
+  }
+  
+  // Check for debris issues
+  if (analogRead(TOUCH) >= 10) {
+    message = DUMP;
+  } else {
+    message = NO_CHANGE; 
+  }
+  
+  // Check for proximity issues after it has grown.
+  if (hasGrown == true) {
+    if (proximityDistanceFront <= TOO_CLOSE && proximityDistanceBack <= TOO_CLOSE) {
+      message = STOP;
+    } else if (proximityDistanceFront <= TOO_CLOSE && proximityDistanceBack > TOO_CLOSE) {
+      message = BACKWARD;
+    } else if (proximityDistanceFront > TOO_CLOSE && proximityDistanceBack <= TOO_CLOSE) {
+      message = FRONT;
+    } else {
+      message = NO_CHANGE;
+    }
+  }
+  
+  if (message == NO_CHANGE) {
+    if (hasGrown == false) {
+      // Runo needs to grow.
+      if (proximityDistanceBack > TOO_CLOSE) {
+         message = BACKWARD;
+      } else {
+         // GROW HERE...
+         // ADD THATE GROW CODE HERE
+         // ADD THATE GROW CODE HERE
+         // ADD THATE GROW CODE HERE
+         // THEN SET hasGrown to true HERE!!!!!!!!
+         message = STOP; 
+      }
+    } else {
+      // Runo needs to reproduce.
+      if (proximityDistanceFront > TOO_CLOSE) {
+        message = FORWARD; 
+      } else {
+        // REPRODUCE HERE...
+         // REPRODUCE HERE...
+         // REPRODUCE HERE...
+         // REPRODUCE HERE...
+        message = STOP;
+      }
+    }
+  }
+  
+  
+  
+  Serial.println(message);
+  
+  Wire.beginTransmission(4); // transmit to device #4
+  Wire.write(message);        // send one bytes
+  Wire.endTransmission();    // stop transmitting
+  
+  // Set time to take a dump.
+  if (message = DUMP) {
+    debay(5000); 
+  }
+
+  //debug();
+
+  delay(100);
+}
+
+void calculateProximitySensors() {
+  // Calculate the front proximity sensor data.
+  digitalWrite(trigPinFront, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinFront, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinFront, LOW);
+  proximityDurationFront = pulseIn(echoPinFront, HIGH);
+  proximityDistanceFront = (proximityDurationFront / 2) / 29.1;
+  
+  // Calculate the back proximity sensor data.
+  digitalWrite(trigPinBack, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinBack, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinBack, LOW);
+  proximityDurationBack = pulseIn(echoPinBack, HIGH);
+  proximityDistanceBack = (proximityDurationBack / 2) / 29.1;
+}
+
+void debug() {
+  Serial.print("Front Prox: ");
+  Serial.print(proximityDistanceFront);
+  Serial.print("    ");
+  
+  Serial.print("Back Prox: ");
+  Serial.print(proximityDistanceBack);
+  Serial.print("    ");
+  
+  Serial.print("Touch: ");
+  Serial.print(analogRead(A2));
+  Serial.print("    ");
+  
+  Serial.print("Front Light: ");
+  Serial.print(analogRead(A1));
+  Serial.print("    ");
+  
+  Serial.print("Back Light: ");
+  Serial.print(analogRead(A0));
+  Serial.print("    ");
+  
+  Serial.println();
+}
