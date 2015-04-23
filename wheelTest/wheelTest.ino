@@ -19,25 +19,33 @@ void setup()
 
 void loop()
 {
+  setMotors(255, 255);
+  delay(1000);
+  setMotors(0,0);
+  delay(1000);
+  setMotors(-255, -255);
+  delay(1000);
+  setMotors(0,0);
+  delay(1000);
   
 }
 
-void moveForward
+void moveForward()
 {
   setMotors(255, 255);
 }
 
-void moveBackward
+void moveBackward()
 {
   setMotors(-255, -255);
 }
 
-void moveStop
+void moveStop()
 {
   setMotors(0, 0);
 }
 
-void setMotors(int rightWheel, int rightWheel)
+void setMotors(int rightWheel, int leftWheel)
 {
    int vleftWheel = abs(leftWheel) * motorVolts / supplyVolts;
    int vrightWheel = abs(rightWheel) * motorVolts / supplyVolts;
